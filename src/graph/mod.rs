@@ -1,14 +1,14 @@
 mod id;
+mod link;
 mod name;
 mod node;
-mod link;
 
-use std::str::FromStr;
+use std::{ops::Index, str::FromStr};
 
 pub use id::Id;
-pub use name::{Name, is_invalid_name_char};
-pub use node::Node;
 pub use link::LinkByName;
+pub use name::{is_invalid_name_char, Name};
+pub use node::Node;
 
 use ParseError::*;
 
@@ -17,7 +17,7 @@ pub struct Graph {
     nodes: Vec<Node>,
     start: Id,
     end: Id,
-    number_of_ants: usize,
+    ant_count: usize,
 }
 
 impl Graph {
@@ -30,13 +30,61 @@ impl Graph {
     }
 
     fn link_by_name(&mut self, link: LinkByName) -> Result<(), LinkingError> {
-        let a = self.nodes.iter().position(|n| n.name == link.a)
+        let a = self
+            .nodes
+            .iter()
+            .position(|n| n.name == link.a)
             .ok_or(LinkingError::UnknownName(link.a))?;
-        let b = self.nodes.iter().position(|n| n.name == link.b)
+        let b = self
+            .nodes
+            .iter()
+            .position(|n| n.name == link.b)
             .ok_or(LinkingError::UnknownName(link.b))?;
         self.nodes[a].links.push(Id(b));
         self.nodes[b].links.push(Id(a));
         Ok(())
+    }
+
+    pub fn nodes(&self) -> &[Node] {
+        &self.nodes
+    }
+
+    pub fn start(&self) -> Id {
+        self.start
+    }
+
+    pub fn end(&self) -> Id {
+        self.end
+    }
+
+    pub fn ant_count(&self) -> usize {
+        self.ant_count
+    }
+
+    #[cfg(test)]
+    pub fn random(mut rng: impl rand::Rng, node_count: usize, link_density: f32, max_ant_count: usize) -> Self {
+        Self {
+            start: Id(rng.gen_range(0..node_count)),
+            end: Id(rng.gen_range(0..node_count)),
+            nodes: (0..node_count)
+                .map(|id| Node {
+                    name: Name::from_str(&id.to_string()).unwrap(),
+                    pos: node::Position { x: 0, y: 0 },
+                    links: (0..node_count)
+                        .filter(|_| rng.gen::<f32>() < link_density)
+                        .map(|id| Id(id))
+                        .collect(),
+                })
+                .collect(),
+            ant_count: rng.gen_range(0..max_ant_count),
+        }
+    }
+}
+
+impl Index<Id> for Graph {
+    type Output = Node;
+    fn index(&self, index: Id) -> &Self::Output {
+        &self.nodes[index.0]
     }
 }
 
@@ -45,7 +93,8 @@ impl FromStr for Graph {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut lines = s.lines();
-        let number_of_ants: usize = lines.next()
+        let number_of_ants: usize = lines
+            .next()
             .ok_or(MissingAnts)?
             .parse()
             // TODO change
@@ -54,14 +103,14 @@ impl FromStr for Graph {
         let mut parsing_nodes: bool = true;
 
         let mut graph = Graph {
-            number_of_ants,
+            ant_count: number_of_ants,
             start: Id(0),
             end: Id(0),
             nodes: vec![],
         };
         let mut start = None;
         let mut end = None;
-        
+
         for line in lines {
             if line.starts_with("##") {
                 let name = &line[2..];
@@ -90,7 +139,6 @@ impl FromStr for Graph {
                 let link = line.parse()?;
                 graph.link_by_name(link)?;
             }
-
         }
 
         let Some(start) = start else {
@@ -137,7 +185,7 @@ pub enum LinkingError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ParseError::*;
+    use ParseError::MissingAnts;
 
     #[test]
     fn empty_graph() {
