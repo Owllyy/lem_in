@@ -12,16 +12,16 @@ pub struct Backtrace<'a> {
 }
 
 impl<'a> Backtrace<'a> {
-    pub fn new(graph: &'a Graph, accesses: &'a Accesses, path_id: PathId) -> Self {
+    pub fn new(graph: &'a Graph, accesses: &'a Accesses, path_id: PathId, start: Id) -> Self {
         let mut result = Self {
-            current_id: graph.end(),
+            current_id: start,
             graph,
             accesses,
             current_path_id: path_id,
         };
         result.next();
         result
-   }
+    }
 }
 
 impl<'a> Iterator for Backtrace<'a> {

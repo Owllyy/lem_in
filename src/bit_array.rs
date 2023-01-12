@@ -94,6 +94,7 @@ mod tests {
     #[test]
     fn new() {
         let bs = BitArray::new(10);
+        #[cfg(debug_assertions)]
         assert_eq!(bs.1, 10);
         assert_eq!(bs.0.len(), 2);
     }

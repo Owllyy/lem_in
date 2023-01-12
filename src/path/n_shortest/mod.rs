@@ -2,7 +2,7 @@ mod backtrace;
 use backtrace::Backtrace;
 
 use super::Path;
-use crate::{BitArray, Graph};
+use crate::{BitArray, Graph, Id};
 use std::collections::{HashMap, VecDeque};
 
 type PathId = usize;
@@ -31,16 +31,27 @@ impl PathIdGenerator {
     }
 }
 
-fn find_group(incompats: &BitArray, paths: &[ValidPath], count: usize) -> Option<Vec<PathId>> {
+fn find_group(
+    incompats: &BitArray,
+    paths: &[ValidPath],
+    start: usize,
+    count: usize,
+) -> Option<Vec<PathId>> {
     if count == 0 {
         return Some(Vec::new());
     }
-    for (path_index, path) in paths.iter().enumerate() {
+    for (path_index, path) in paths.iter().enumerate().skip(start) {
         if incompats.get(path_index) {
             continue;
         }
 
-        let result = find_group(&(incompats | &path.incompats), paths, count - 1);
+        let result = find_group(
+            &(incompats | &path.incompats),
+            paths,
+            path_index + 1,
+            count - 1,
+        );
+
         if let Some(mut group) = result {
             group.push(path.path_id);
             return Some(group);
@@ -50,6 +61,7 @@ fn find_group(incompats: &BitArray, paths: &[ValidPath], count: usize) -> Option
 }
 
 impl Path {
+    // BUG: when n > 2 repeats the first one n times
     pub fn n_shortest(graph: &Graph, n: usize) -> Option<Vec<Self>> {
         // TODO: find better way
         if n == 0 {
@@ -60,7 +72,10 @@ impl Path {
         let mut valid_paths: Vec<ValidPath> = vec![];
 
         let mut path_id_generator = PathIdGenerator::new();
-        active_branches.push_back((path_id_generator.next(), graph.start()));
+        let path_origin = path_id_generator.next();
+        // Here I put usize::MAX because should never be used
+        accesses[graph.start().0].insert(path_origin, (usize::MAX, Id(usize::MAX)));
+        active_branches.push_back((path_origin, graph.start()));
 
         let group = loop {
             let (path_id, id) = active_branches.pop_front()?;
@@ -68,45 +83,78 @@ impl Path {
                 let mut hit_node = BitArray::new(graph.nodes().len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
-                for id in Backtrace::new(graph, &accesses, path_id) {
+                for id in Backtrace::new(graph, &accesses, path_id, id) {
                     hit_node.add(id.0);
                     for (path_index, path) in valid_paths.iter().enumerate() {
                         incompats.add_if(path_index, path.hit_node.get(id.0));
                     }
                 }
 
-                if let Some(mut group) = find_group(&incompats, &valid_paths, n - 1) {
+                if let Some(mut group) = find_group(&incompats, &valid_paths, 0, n - 1) {
                     group.push(path_id);
                     break group;
                 }
 
-                valid_paths.push(ValidPath { path_id, hit_node, incompats });
+                valid_paths.push(ValidPath {
+                    path_id,
+                    hit_node,
+                    incompats,
+                });
                 continue;
             }
 
             for &link in &graph[id].links {
-                // /!\ Wrong !
-                // The path_id is of the current path segment (we must likely backtrace)
-                // checking for it in previous wont prevent loops
-                // Example:
-                //
-                //     #0     #1     #2
-                // (1) -> (2) -> (3) -> (1)
-                // 
-                // >> Here node (1) it moved back to because it doesn't know path #2 
-                //
-                // Maybe preventing loops wont be usefull
-                // We could try to prevent moving back
-
-                accesses[link.0].entry(path_id_generator.peek()).or_insert_with(|| {
-                    active_branches.push_back((path_id_generator.next(), link));
-                    (path_id, id)
-                });
+                if Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link) {
+                    continue;
+                }
+                let new_path_id = path_id_generator.next();
+                accesses[link.0].insert(new_path_id, (path_id, id));
+                active_branches.push_back((new_path_id, link));
             }
         };
-        Some(group
-            .into_iter()
-            .map(|path_id| Backtrace::new(graph, &accesses, path_id).collect())
-            .collect())
+        Some(
+            group
+                .into_iter()
+                .map(|path_id| Backtrace::new(graph, &accesses, path_id, graph.end()).collect())
+                .collect(),
+        )
+    }
+}
+
+#[cfg(test)]
+mod benches {
+    extern crate test;
+    use super::Path;
+    use crate::Graph;
+    use test::bench::Bencher;
+
+    #[bench]
+    fn shortest_2_paths_for_map_1(b: &mut Bencher) {
+        let graph = include_str!("../../../maps/1").parse().unwrap();
+        b.iter(|| Path::n_shortest(&graph, 2));
+    }
+
+    #[bench]
+    fn shortest_2_paths_random(b: &mut Bencher) {
+        use rand::SeedableRng;
+        let rng = rand::rngs::StdRng::seed_from_u64(0);
+        let graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| Path::n_shortest(&graph, 2));
+    }
+
+    #[bench]
+    fn shortest_10_paths_random(b: &mut Bencher) {
+        use rand::SeedableRng;
+        let rng = rand::rngs::StdRng::seed_from_u64(0);
+        let graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| Path::n_shortest(&graph, 10));
+    }
+
+    #[bench]
+    fn shortest_100_paths_random(b: &mut Bencher) {
+        use rand::SeedableRng;
+        let rng = rand::rngs::StdRng::seed_from_u64(0);
+        let graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| Path::n_shortest(&graph, 100));
     }
 }
