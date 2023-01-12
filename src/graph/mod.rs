@@ -193,4 +193,15 @@ mod tests {
 
         assert!(matches!(result, Err(MissingAnts)));
     }
+
+    extern crate test;
+    use test::bench::Bencher;
+
+    #[bench]
+    fn graph_random_gen(b: &mut Bencher) {
+        use rand::SeedableRng;
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0);
+        b.iter(|| Graph::random(&mut rng, 4_000, 0.10, 10));
+    }
 }
+
