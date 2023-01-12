@@ -4,8 +4,10 @@
 #![feature(test)]
 
 pub mod graph;
+pub mod bit_array;
 
 pub mod path;
 
 pub use graph::*;
+pub use bit_array::BitArray;
 

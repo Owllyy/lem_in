@@ -1,5 +1,5 @@
 use lem_in::graph::Graph;
-use lem_in::path::shortest_path;
+use lem_in::path::Path;
 
 fn main() {
     let path = std::env::args().nth(1)
@@ -15,9 +15,11 @@ fn main() {
             std::process::exit(1);
         }
     };
-    println!("start = {}, end = {}", graph.start(), graph.end());
-    for (id, node) in graph.nodes().iter().enumerate() {
-        println!("{id} {node:?}");
-    }
-    println!("{:#?}", shortest_path(&graph));
+    // println!("start = {}, end = {}", graph.start(), graph.end());
+    // for (id, node) in graph.nodes().iter().enumerate() {
+    //     println!("{id} {node:?}");
+    // }
+    // println!("{:#?}", Path::shortest(&graph));
+
+    println!("{:#?}", Path::n_shortest(&graph, 2));
 }
