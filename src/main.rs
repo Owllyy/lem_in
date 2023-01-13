@@ -21,5 +21,5 @@ fn main() {
     // }
     // println!("{:#?}", Path::shortest(&graph));
 
-    println!("{:#?}", Path::n_shortest(&graph, 3));
+    println!("{:#?}", Path::n_shortest(&graph, 4));
 }

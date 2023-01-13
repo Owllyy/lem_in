@@ -1,12 +1,25 @@
 use std::ops::BitOr;
+use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BitArray(
     Box<[u8]>,
     #[cfg(debug_assertions)]
     usize
 );
 
+impl fmt::Display for BitArray {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[cfg(debug_assertions)]
+        let size = self.1;
+        #[cfg(not(debug_assertions))]
+        let size = 8 * self.0.len();
+        for i in  0..size {
+            write!(f, "{} = {}, ", i, self.get(i) as u8)?;
+        }
+        Ok(())
+    }
+}
 
 impl BitArray {
     pub fn new(n: usize) -> Self {

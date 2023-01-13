@@ -3,7 +3,8 @@ use backtrace::Backtrace;
 
 use super::Path;
 use crate::{BitArray, Graph, Id};
-use std::collections::{HashMap, VecDeque};
+
+use std::{collections::{HashMap, VecDeque}, fmt, path};
 
 type PathId = usize;
 
@@ -11,6 +12,12 @@ struct ValidPath {
     path_id: PathId,
     hit_node: BitArray,
     incompats: BitArray,
+}
+
+impl fmt::Display for ValidPath {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} | {} | {}", self.path_id, self.hit_node, self.incompats)
+    }
 }
 
 struct PathIdGenerator(PathId);
@@ -54,6 +61,7 @@ fn find_group(
 
         if let Some(mut group) = result {
             group.push(path.path_id);
+            println!("{incompats}");
             return Some(group);
         }
     }
@@ -89,9 +97,10 @@ impl Path {
                         incompats.add_if(path_index, path.hit_node.get(id.0));
                     }
                 }
-
+                
                 if let Some(mut group) = find_group(&incompats, &valid_paths, 0, n - 1) {
                     group.push(path_id);
+                    valid_paths.iter().for_each(|p| println!("{p}"));
                     break group;
                 }
 
