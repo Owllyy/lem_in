@@ -3,8 +3,7 @@ use backtrace::Backtrace;
 
 use super::Path;
 use crate::{BitArray, Graph, Id};
-
-use std::{collections::{HashMap, VecDeque}, fmt, path};
+use std::collections::{HashMap, VecDeque};
 
 type PathId = usize;
 
@@ -12,12 +11,6 @@ struct ValidPath {
     path_id: PathId,
     hit_node: BitArray,
     incompats: BitArray,
-}
-
-impl fmt::Display for ValidPath {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} | {} | {}", self.path_id, self.hit_node, self.incompats)
-    }
 }
 
 struct PathIdGenerator(PathId);
@@ -61,7 +54,6 @@ fn find_group(
 
         if let Some(mut group) = result {
             group.push(path.path_id);
-            println!("{incompats}");
             return Some(group);
         }
     }
@@ -69,7 +61,6 @@ fn find_group(
 }
 
 impl Path {
-    // BUG: when n > 2 repeats the first one n times
     pub fn n_shortest(graph: &Graph, n: usize) -> Option<Vec<Self>> {
         // TODO: find better way
         if n == 0 {
@@ -91,16 +82,15 @@ impl Path {
                 let mut hit_node = BitArray::new(graph.nodes().len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
-                for id in Backtrace::new(graph, &accesses, path_id, id) {
+                for id in Backtrace::new(graph, &accesses, path_id, id).skip(1) {
                     hit_node.add(id.0);
                     for (path_index, path) in valid_paths.iter().enumerate() {
                         incompats.add_if(path_index, path.hit_node.get(id.0));
                     }
                 }
-                
+
                 if let Some(mut group) = find_group(&incompats, &valid_paths, 0, n - 1) {
                     group.push(path_id);
-                    valid_paths.iter().for_each(|p| println!("{p}"));
                     break group;
                 }
 
@@ -113,7 +103,9 @@ impl Path {
             }
 
             for &link in &graph[id].links {
-                if Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link) {
+                // TODO factorize repeated backtracing...
+                if link == graph.start() || Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link)
+                {
                     continue;
                 }
                 let new_path_id = path_id_generator.next();
@@ -124,7 +116,11 @@ impl Path {
         Some(
             group
                 .into_iter()
-                .map(|path_id| Backtrace::new(graph, &accesses, path_id, graph.end()).collect())
+                .map(|path_id| {
+                    Backtrace::new(graph, &accesses, path_id, graph.end())
+                        .skip(1)
+                        .collect()
+                })
                 .collect(),
         )
     }

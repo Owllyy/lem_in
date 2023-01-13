@@ -19,7 +19,6 @@ impl<'a> Backtrace<'a> {
             accesses,
             current_path_id: path_id,
         };
-        result.next();
         result
     }
 }
