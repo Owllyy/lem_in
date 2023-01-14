@@ -1,4 +1,4 @@
-use lem_in::graph::{Graph, self};
+use lem_in::graph::Graph;
 use lem_in::path::Path;
 
 fn main() {
@@ -16,7 +16,7 @@ fn main() {
     //     } // };
     use rand::SeedableRng;
     let rng = rand::rngs::StdRng::seed_from_u64(0);
-    let graph = Graph::random(rng, 4_590, 0.01, 5);
+    let graph = Graph::random(rng, 4_000, 0.01, 5);
     let max_possible = graph[graph.start()].links.len().min(graph[graph.end()].links.len());
     // println!("start = {}, end = {}", graph.start(), graph.end());
     // for (id, node) in graph.nodes().iter().enumerate() {
