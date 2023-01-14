@@ -61,7 +61,7 @@ impl Graph {
         self.ant_count
     }
 
-    #[cfg(test)]
+    // #[cfg(test)]
     pub fn random(mut rng: impl rand::Rng, node_count: usize, link_density: f32, max_ant_count: usize) -> Self {
         Self {
             start: Id(rng.gen_range(0..node_count)),

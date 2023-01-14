@@ -104,11 +104,10 @@ impl Path {
 
             for &link in &graph[id].links {
                 // TODO factorize repeated backtracing...
-                if link == graph.start() || Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link)
-                {
+                if link == graph.start() || Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link) {
                     continue;
                 }
-                let new_path_id = path_id_generator.next();
+                let new_path_id = dbg!(path_id_generator.next());
                 accesses[link.0].insert(new_path_id, (path_id, id));
                 active_branches.push_back((new_path_id, link));
             }
