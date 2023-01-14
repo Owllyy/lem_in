@@ -37,6 +37,9 @@ fn find_group(
     start: usize,
     count: usize,
 ) -> Option<Vec<PathId>> {
+    if paths[start..].len() < count {
+        return None;
+    }
     if count == 0 {
         return Some(Vec::new());
     }
@@ -66,6 +69,10 @@ impl Path {
         if n == 0 {
             return Some(Vec::new());
         }
+        let max_possible = graph[graph.start()].links.len().min(graph[graph.end()].links.len());
+        if n > max_possible {
+            return None;
+        }
         let mut active_branches = VecDeque::new();
         let mut accesses = vec![HashMap::new(); graph.nodes().len()];
         let mut valid_paths: Vec<ValidPath> = vec![];
@@ -91,6 +98,7 @@ impl Path {
 
                 if let Some(mut group) = find_group(&incompats, &valid_paths, 0, n - 1) {
                     group.push(path_id);
+                    println!("{}", path_id_generator.peek());
                     break group;
                 }
 
@@ -107,7 +115,7 @@ impl Path {
                 if link == graph.start() || Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link) {
                     continue;
                 }
-                let new_path_id = dbg!(path_id_generator.next());
+                let new_path_id = path_id_generator.next();
                 accesses[link.0].insert(new_path_id, (path_id, id));
                 active_branches.push_back((new_path_id, link));
             }
