@@ -19,7 +19,7 @@ fn main() {
     // for (id, node) in graph.nodes().iter().enumerate() {
     //     println!("{id} {node:?}");
     // }
-    // println!("{:#?}", Path::shortest(&graph));
-
-    println!("{:#?}", Path::n_shortest(&graph, 4));
+    let start = std::time::Instant::now();
+    println!("{:#?}", Path::n_shortest(&graph, 100));
+    println!("in {:?}", start.elapsed());
 }
