@@ -1,7 +1,8 @@
 use core::fmt;
+use std::{collections::VecDeque, io};
 
-use crate::path::Path;
 use super::Graph;
+use crate::path::Path;
 
 #[derive(Debug)]
 struct Step {
@@ -12,9 +13,78 @@ struct Step {
 #[derive(Debug)]
 pub struct Solution(Vec<Step>);
 
+fn cycle(vec: &mut VecDeque<Option<usize>>, x: Option<usize>) {
+    vec.pop_back();
+    vec.push_front(x);
+}
+
+// Print to the correct format
+fn print(
+    output: &mut impl io::Write,
+    path: &Path,
+    ant_vec: &VecDeque<Option<usize>>,
+) -> io::Result<()> {
+    for (node, ant) in path.as_ref().iter().zip(ant_vec) {
+        if let Some(ant) = ant {
+            write!(output, "L{}-{} ", ant, usize::from(*node))?;
+        }
+    }
+    Ok(())
+}
+
+impl Solution {
+    pub fn write_to(&self, mut output: impl io::Write) -> io::Result<()> {
+        // Skip ahead & prevent panic
+        let Some(all_path_step) = self.0.get(0) else {
+            return Ok(());
+        };
+
+        // Prefill with None
+        let mut ant_vecs: Vec<VecDeque<Option<usize>>> = all_path_step
+            .paths
+            .iter()
+            .map(|_| (0..all_path_step.paths.len()).map(|_| None).collect())
+            .collect();
+
+        // Id generator
+        let mut next_ant_id = {
+            let mut id = 0;
+            move || {
+                let result = id;
+                id += 1;
+                result
+            }
+        };
+
+        // Push In and Forward ant in Paths + Print
+        for current_step in &self.0 {
+            for _ in 0..current_step.duration {
+                for (i, (path, ants)) in all_path_step.paths.iter().zip(&mut ant_vecs).enumerate() {
+                    cycle(ants, current_step.paths.get(i).map(|_| next_ant_id()));
+                    print(&mut output, path, ants)?;
+                }
+                write!(output, "\n")?;
+            }
+        }
+
+        // Push forward remaining ant in Paths + Print
+        let latency = all_path_step.paths
+            .iter().map(Path::len)
+            .max().unwrap_or(0);
+        for _ in 0..latency {
+            for (path, ants) in all_path_step.paths.iter().zip(&mut ant_vecs) {
+                cycle(ants, None);
+                print(&mut output, path, ants)?;
+            }
+            write!(output, "\n")?;
+        }
+        Ok(())
+    }
+}
+
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for Step{duration, paths} in &self.0 {
+        for Step { duration, paths } in &self.0 {
             writeln!(f, "{duration} times:")?;
             for path in paths {
                 writeln!(f, "    - {path:?}")?;
@@ -30,7 +100,7 @@ impl Graph {
         let end_link_count = self[self.start].links.len();
         start_link_count.min(end_link_count)
     }
-    
+
     pub fn solve(&self) -> Option<Solution> {
         // TODO: use better one found on the fly
         let mut n = self.simple_throughput_majorant();
