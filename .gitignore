@@ -11,3 +11,8 @@ Cargo.lock
 
 #Config workspace folder
 .vscode/
+
+# Files genrated by flamegraph & perf
+flamegraph.svg
+perf.data
+perf.data.old
