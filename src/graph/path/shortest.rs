@@ -2,18 +2,18 @@ use super::Path;
 use crate::Graph;
 use std::collections::VecDeque;
 
-impl Path {
-    pub fn shortest(graph: &Graph) -> Option<Self> {
-        let mut accesses = vec![None; graph.nodes().len()];
+impl Graph {
+    pub fn shortest_path(&self) -> Option<Path> {
+        let mut accesses = vec![None; self.nodes().len()];
         let mut active_nodes = VecDeque::new();
 
-        let mut id = graph.start();
+        let mut id = self.start();
         accesses[usize::from(id)] = Some(id);
         loop {
-            if id == graph.end() {
+            if id == self.end() {
                 break;
             }
-            for link in &graph[id].links {
+            for link in &self[id].links {
                 let access = &mut accesses[usize::from(id)];
                 if access.is_none() {
                     *access = Some(id);
@@ -24,7 +24,7 @@ impl Path {
         }
 
         let mut path = vec![id];
-        while id != graph.start() {
+        while id != self.start() {
             id = accesses[usize::from(id)].unwrap();
             path.push(id);
         }
@@ -36,14 +36,13 @@ impl Path {
 #[cfg(test)]
 mod benches {
     extern crate test;
-    use super::Path;
     use crate::Graph;
     use test::bench::Bencher;
 
     #[bench]
     fn shortest_path_for_map_1(b: &mut Bencher) {
-        let graph = include_str!("../../maps/handmade/subject_map").parse().unwrap();
-        b.iter(|| Path::shortest(&graph));
+        let graph: Graph = include_str_abs!("/maps/handmade/subject_map").parse().unwrap();
+        b.iter(|| graph.shortest_path());
     }
 
     #[bench]
@@ -51,6 +50,6 @@ mod benches {
         use rand::SeedableRng;
         let rng = rand::rngs::StdRng::seed_from_u64(0);
         let graph = Graph::random(rng, 4_000, 0.001, 10);
-        b.iter(|| Path::shortest(&graph));
+        b.iter(|| graph.shortest_path());
     }
 }

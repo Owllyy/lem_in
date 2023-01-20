@@ -1,4 +1,4 @@
-use super::{NodeId, name, Name};
+use super::{name, Name};
 
 use core::fmt;
 use std::{str::FromStr, error::Error};

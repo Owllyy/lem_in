@@ -3,6 +3,13 @@
 #![allow(soft_unstable)]
 #![feature(test)]
 
+#[cfg(test)]
+macro_rules! include_str_abs {
+    ($path: literal) => {
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), $path))
+    }
+}
+
 pub mod graph;
 pub mod bit_array;
 
