@@ -67,7 +67,7 @@ impl Solution {
             write!(output, "\n")?;
         }
         Ok(())
-        }
+    }
 }
 
 impl fmt::Display for Solution {
