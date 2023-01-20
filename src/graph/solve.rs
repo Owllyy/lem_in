@@ -21,43 +21,55 @@ fn push_bounded(vec: &mut VecDeque<Option<usize>>, x: Option<usize>, limit: usiz
 }
 
 impl Solution {
-    fn write_to<Output: io::Write>(&self, mut output: impl io::Write) -> io::Result<()> {
+    pub fn write_to(&self, mut output: impl io::Write) -> io::Result<()> {
         let mut ant_id: usize = 0;
-        for current_step in &self.0 {
         let mut ant_vec: Vec<VecDeque<Option<usize>>> = Vec::new();
-        for path in &current_step.paths {
-            ant_vec.push(VecDeque::new());
-        }
 
-        let Some(latency) = current_step.paths.iter().map(|e| e.len()).max() else {
-            // TODO choose behaviour for now we are lazy
-            return Ok(())
-        };
-        
         fn print(output: &mut impl io::Write, path: &Path, ant_vec: &VecDeque<Option<usize>>) -> io::Result<()> {
             for (j, node) in path.as_ref().iter().enumerate() {
-                if let Some(ant) = ant_vec[j] {
-                    write!(output, "L{}-{}", ant, node)?;
+                if ant_vec.len() > j {
+                    if let Some(ant) = ant_vec[j] {
+                        write!(output, "L{}-{} ", ant, usize::from(*node))?;
+                    }
                 }
             }
             Ok(())
         }
-        
-        for time in 0..current_step.duration {
-            for (i, path) in current_step.paths.iter().enumerate() {
-                push_bounded(&mut ant_vec[i], Some(ant_id), path.len());
-                ant_id += 1;
-                print(&mut output, path, &ant_vec[i])?;
+
+        for (step_index, current_step) in self.0.iter().enumerate() {
+            for path in &current_step.paths {
+                ant_vec.push(VecDeque::new());
             }
-        }
-        for time in 0..latency {
-            for (i, path) in self.0[0].paths.iter().enumerate() {
-                push_bounded(&mut ant_vec[i], None, path.len());
-                print(&mut output, path, &ant_vec[i])?;
+
+            let Some(latency) = current_step.paths.iter().map(|e| e.len()).max() else {
+                // TODO choose behaviour for now we are lazy
+                return Ok(())
+            };
+            
+            
+            for time in 0..current_step.duration {
+                for (i, path) in self.0[0].paths.iter().enumerate() {
+                    // push ant in current_step scope and push forward others
+                    if current_step.paths.len() > i {
+                        push_bounded(&mut ant_vec[i], Some(ant_id), path.len());
+                    } else {
+                        push_bounded(&mut ant_vec[i], None, path.len());
+                    }
+                    ant_id += 1;
+                    print(&mut output, path, &mut ant_vec[i])?;
+                }
+                write!(output, "\n")?;
             }
-        }
     }
-        Ok(())
+    let Some(latency) = self.0[0].paths.iter().map(|e| e.len()).max() else {return Ok(())};
+    for i in 0..latency {
+        for (i, path) in self.0[0].paths.iter().enumerate() {
+            push_bounded(&mut ant_vec[i], None, path.len());
+            print(&mut output, path, &ant_vec[i])?;
+        }
+        write!(output, "\n")?;
+    }
+    Ok(())
     }
 }
 

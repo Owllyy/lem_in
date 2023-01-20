@@ -12,8 +12,8 @@ impl FromIterator<NodeId> for Path {
     }
 }
 
-impl AsRef<[Id]> for Path {
-    fn as_ref(&self) -> &[Id] {
+impl AsRef<[NodeId]> for Path {
+    fn as_ref(&self) -> &[NodeId] {
         &self.0
     }
 }

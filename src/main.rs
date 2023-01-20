@@ -21,7 +21,8 @@ fn main() {
     println!("There are {} ants", graph.ant_count());
 
     if let Some(solution) = graph.solve() {
-        println!("{}", solution);
+        solution.write_to(std::io::stdout());
+        // println!("{}", solution);
     } else {
         println!("No solution found");
     }
