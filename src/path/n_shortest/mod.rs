@@ -1,11 +1,12 @@
 mod backtrace;
+mod branch_id;
 use backtrace::Backtrace;
 
 use super::Path;
-use crate::{BitArray, Graph, Id, graph};
-use std::collections::{HashMap, VecDeque};
 
-type BranchId = usize;
+use branch_id::BranchId;
+use crate::{BitArray, Graph, Id};
+use std::collections::{HashMap, VecDeque};
 
 struct ValidPath {
     branch: Branch,
@@ -23,12 +24,12 @@ pub struct Branch {
 
 impl BranchGenerator {
     fn new() -> Self {
-        Self(0)
+        Self(0.into())
     }
 
     fn next(&mut self) -> BranchId {
         let result = self.0;
-        self.0 += 1;
+        self.0 = (usize::from(self.0) + 1).into();
         result
     }
 
