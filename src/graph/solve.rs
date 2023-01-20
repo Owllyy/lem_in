@@ -1,4 +1,5 @@
 use core::fmt;
+use std::{io, collections::VecDeque, fmt::write};
 
 use crate::path::Path;
 use super::Graph;
@@ -11,6 +12,54 @@ struct Step {
 
 #[derive(Debug)]
 pub struct Solution(Vec<Step>);
+
+fn push_bounded(vec: &mut VecDeque<Option<usize>>, x: Option<usize>, limit: usize) {
+    vec.push_front(x);
+    if vec.len() > limit {
+        vec.pop_back();
+    }
+}
+
+impl Solution {
+    fn write_to<Output: io::Write>(&self, mut output: impl io::Write) -> io::Result<()> {
+        let mut ant_id: usize = 0;
+        for current_step in &self.0 {
+        let mut ant_vec: Vec<VecDeque<Option<usize>>> = Vec::new();
+        for path in &current_step.paths {
+            ant_vec.push(VecDeque::new());
+        }
+
+        let Some(latency) = current_step.paths.iter().map(|e| e.len()).max() else {
+            // TODO choose behaviour for now we are lazy
+            return Ok(())
+        };
+        
+        fn print(output: &mut impl io::Write, path: &Path, ant_vec: &VecDeque<Option<usize>>) -> io::Result<()> {
+            for (j, node) in path.as_ref().iter().enumerate() {
+                if let Some(ant) = ant_vec[j] {
+                    write!(output, "L{}-{}", ant, node)?;
+                }
+            }
+            Ok(())
+        }
+        
+        for time in 0..current_step.duration {
+            for (i, path) in current_step.paths.iter().enumerate() {
+                push_bounded(&mut ant_vec[i], Some(ant_id), path.len());
+                ant_id += 1;
+                print(&mut output, path, &ant_vec[i])?;
+            }
+        }
+        for time in 0..latency {
+            for (i, path) in self.0[0].paths.iter().enumerate() {
+                push_bounded(&mut ant_vec[i], None, path.len());
+                print(&mut output, path, &ant_vec[i])?;
+            }
+        }
+    }
+        Ok(())
+    }
+}
 
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

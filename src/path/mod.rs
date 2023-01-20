@@ -12,6 +12,12 @@ impl FromIterator<Id> for Path {
     }
 }
 
+impl AsRef<[Id]> for Path {
+    fn as_ref(&self) -> &[Id] {
+        &self.0
+    }
+}
+
 impl Path {
     pub fn len(&self) -> usize {
         self.0.len()
