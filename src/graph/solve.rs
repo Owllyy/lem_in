@@ -105,7 +105,7 @@ impl Graph {
         // TODO: use better one found on the fly
         let mut n = self.simple_throughput_majorant();
         let mut paths = loop {
-            if let Some(paths) = Path::n_shortest(self, n) {
+            if let Some(paths) = self.n_shortest_paths(n) {
                 break paths;
             }
             if n <= 1 {

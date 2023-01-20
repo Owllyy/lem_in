@@ -2,10 +2,8 @@ mod backtrace;
 mod branch_id;
 use backtrace::Backtrace;
 
-use super::Path;
-
 use branch_id::BranchId;
-use crate::{BitArray, Graph, NodeId};
+use crate::{BitArray, Graph, NodeId, Path};
 use std::collections::{HashMap, VecDeque};
 
 struct ValidPath {
@@ -111,38 +109,39 @@ fn find_group(
     None
 }
 
-impl Path {
+impl Graph {
     // TODO: add find optimal
 
     // TODO: sort result Vec<_>
-    pub fn n_shortest(graph: &Graph, n: usize) -> Option<Vec<Self>> {
+    pub fn n_shortest_paths(&self, n: usize) -> Option<Vec<Path>> {
         // TODO: find better way
         if n == 0 {
             return Some(Vec::new());
         }
+
         // TODO: move to graph
-        let max_possible = graph.simple_throughput_majorant();
+        let max_possible = self.simple_throughput_majorant();
 
         if n > max_possible {
             return None;
         }
         let mut work_queue = WorkQueue::new(2 * n);
-        let mut accesses: Vec<_> = (0..graph.nodes().len()).map(|_| AccessRecord::new()).collect();
+        let mut accesses: Vec<_> = (0..self.nodes().len()).map(|_| AccessRecord::new()).collect();
         let mut valid_paths: Vec<ValidPath> = vec![];
 
         let mut branch_generator = BranchGenerator::new();
         let branch_origin = branch_generator.next();
         // Here I put usize::MAX because should never be used
-        accesses[usize::from(graph.start())].insert(branch_origin, branch_generator.create(NodeId::from(usize::MAX)));
-        work_queue.push(branch_generator.create(graph.start()), &accesses);
+        accesses[usize::from(self.start())].insert(branch_origin, branch_generator.create(NodeId::from(usize::MAX)));
+        work_queue.push(branch_generator.create(self.start()), &accesses);
 
         let group = loop {
             let branch = work_queue.next()?;
-            if branch.node == graph.end() {
-                let mut hit_node = BitArray::new(graph.nodes().len());
+            if branch.node == self.end() {
+                let mut hit_node = BitArray::new(self.nodes().len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
-                for id in Backtrace::new(graph, &accesses, branch).skip(1) {
+                for id in Backtrace::new(self, &accesses, branch).skip(1) {
                     hit_node.add(usize::from(id));
                     for (path_index, path) in valid_paths.iter().enumerate() {
                         incompats.add_if(path_index, path.hit_node.get(usize::from(id)));
@@ -162,9 +161,9 @@ impl Path {
                 continue;
             }
 
-            for &link in &graph[branch.node].links {
+            for &link in &self[branch.node].links {
                 // TODO factorize repeated backtracing...
-                if link == graph.start() || Backtrace::new(graph, &accesses, branch).any(|x| x == link) {
+                if link == self.start() || Backtrace::new(self, &accesses, branch).any(|x| x == link) {
                     continue;
                 }
                 let new_branch = branch_generator.create(link);
@@ -176,7 +175,7 @@ impl Path {
             group
                 .into_iter()
                 .map(|branch| {
-                    Backtrace::new(graph, &accesses, branch)
+                    Backtrace::new(self, &accesses, branch)
                         .skip(1)
                         .collect()
                 })
@@ -188,37 +187,36 @@ impl Path {
 #[cfg(test)]
 mod benches {
     extern crate test;
-    use super::Path;
     use crate::Graph;
     use test::bench::Bencher;
 
     #[bench]
     fn shortest_2_paths_for_map_1(b: &mut Bencher) {
-        let graph = include_str_abs!("/maps/handmade/subject_map").parse().unwrap();
-        b.iter(|| Path::n_shortest(&graph, 2));
+        let graph: Graph = include_str_abs!("/maps/handmade/subject_map").parse().unwrap();
+        b.iter(|| graph.n_shortest_paths(2));
     }
 
     #[bench]
     fn shortest_2_paths_random(b: &mut Bencher) {
         use rand::SeedableRng;
         let rng = rand::rngs::StdRng::seed_from_u64(0);
-        let graph = Graph::random(rng, 4_000, 0.001, 10);
-        b.iter(|| Path::n_shortest(&graph, 2));
+        let graph: Graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| graph.n_shortest_paths(2));
     }
 
     #[bench]
     fn shortest_10_paths_random(b: &mut Bencher) {
         use rand::SeedableRng;
         let rng = rand::rngs::StdRng::seed_from_u64(0);
-        let graph = Graph::random(rng, 4_000, 0.001, 10);
-        b.iter(|| Path::n_shortest(&graph, 10));
+        let graph: Graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| graph.n_shortest_paths(10));
     }
 
     #[bench]
     fn shortest_100_paths_random(b: &mut Bencher) {
         use rand::SeedableRng;
         let rng = rand::rngs::StdRng::seed_from_u64(0);
-        let graph = Graph::random(rng, 4_000, 0.001, 10);
-        b.iter(|| Path::n_shortest(&graph, 100));
+        let graph: Graph = Graph::random(rng, 4_000, 0.001, 10);
+        b.iter(|| graph.n_shortest_paths(100));
     }
 }
