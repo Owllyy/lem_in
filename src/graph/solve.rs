@@ -58,7 +58,7 @@ impl Solution {
         }
 
         //Push forward remaining ant in Paths + Print
-        let Some(latency) = self.0[0].paths.iter().map(|e| e.len()).max() else {return Ok(())};
+        let latency = self.0[0].paths.iter().map(|e| e.len()).max().unwrap_or(0);
         for i in 0..latency {
             for (i, path) in self.0[0].paths.iter().enumerate() {
                 push_bounded(&mut ant_vec[i], None, path.len());
