@@ -1,13 +1,13 @@
 mod shortest;
 mod n_shortest;
 
-use crate::Id;
+use crate::NodeId;
 
 #[derive(Debug, Clone)]
-pub struct Path(Vec<Id>);
+pub struct Path(Vec<NodeId>);
 
-impl FromIterator<Id> for Path {
-    fn from_iter<T: IntoIterator<Item = Id>>(iter: T) -> Self {
+impl FromIterator<NodeId> for Path {
+    fn from_iter<T: IntoIterator<Item = NodeId>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
 }

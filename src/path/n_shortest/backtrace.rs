@@ -1,4 +1,4 @@
-use crate::{Graph, Id};
+use crate::{Graph, NodeId};
 use super::{AccessRecord, Branch};
 pub struct Backtrace<'a> {
     current: Branch,
@@ -17,7 +17,7 @@ impl<'a> Backtrace<'a> {
 }
 
 impl<'a> Iterator for Backtrace<'a> {
-    type Item = Id;
+    type Item = NodeId;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.current.node == self.graph.start() {

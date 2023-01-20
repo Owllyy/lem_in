@@ -1,4 +1,4 @@
-use super::{Id, name, Name};
+use super::{NodeId, name, Name};
 
 use std::str::FromStr;
 
@@ -34,7 +34,7 @@ impl FromStr for LinkByName {
 }
 
 pub struct Link {
-    pub a: Id,
-    pub b: Id,
+    pub a: NodeId,
+    pub b: NodeId,
 }
 
