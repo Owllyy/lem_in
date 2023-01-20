@@ -1,8 +1,7 @@
 use core::fmt;
 use std::{collections::VecDeque, io};
 
-use super::Graph;
-use crate::path::Path;
+use super::{Graph, Path};
 
 #[derive(Debug)]
 struct Step {
@@ -13,16 +12,19 @@ struct Step {
 #[derive(Debug)]
 pub struct Solution(Vec<Step>);
 
-fn cycle(vec: &mut VecDeque<Option<usize>>, x: Option<usize>) {
-    vec.pop_back();
-    vec.push_front(x);
+type AntId = std::num::NonZeroUsize;
+type AntQueue = VecDeque<Option<AntId>>;
+
+fn advance(queue: &mut AntQueue, x: Option<AntId>) {
+    queue.pop_back();
+    queue.push_front(x);
 }
 
 // Print to the correct format
 fn print(
     output: &mut impl io::Write,
     path: &Path,
-    ant_vec: &VecDeque<Option<usize>>,
+    ant_vec: &AntQueue,
 ) -> io::Result<()> {
     for (node, ant) in path.as_ref().iter().zip(ant_vec) {
         if let Some(ant) = ant {
@@ -40,18 +42,16 @@ impl Solution {
         };
 
         // Prefill with None
-        let mut ant_vecs: Vec<VecDeque<Option<usize>>> = all_path_step
-            .paths
-            .iter()
+        let mut queues: Vec<AntQueue> = all_path_step.paths.iter()
             .map(|_| (0..all_path_step.paths.len()).map(|_| None).collect())
             .collect();
 
         // Id generator
         let mut next_ant_id = {
-            let mut id = 0;
+            let mut id = AntId::new(1).unwrap();
             move || {
                 let result = id;
-                id += 1;
+                id = id.checked_add(1).unwrap();
                 result
             }
         };
@@ -59,9 +59,9 @@ impl Solution {
         // Push In and Forward ant in Paths + Print
         for current_step in &self.0 {
             for _ in 0..current_step.duration {
-                for (i, (path, ants)) in all_path_step.paths.iter().zip(&mut ant_vecs).enumerate() {
-                    cycle(ants, current_step.paths.get(i).map(|_| next_ant_id()));
-                    print(&mut output, path, ants)?;
+                for (i, (path, ant_queue)) in all_path_step.paths.iter().zip(&mut queues).enumerate() {
+                    advance(ant_queue, current_step.paths.get(i).map(|_| next_ant_id()));
+                    print(&mut output, path, ant_queue)?;
                 }
                 write!(output, "\n")?;
             }
@@ -72,9 +72,9 @@ impl Solution {
             .iter().map(Path::len)
             .max().unwrap_or(0);
         for _ in 0..latency {
-            for (path, ants) in all_path_step.paths.iter().zip(&mut ant_vecs) {
-                cycle(ants, None);
-                print(&mut output, path, ants)?;
+            for (path, ant_queue) in all_path_step.paths.iter().zip(&mut queues) {
+                advance(ant_queue, None);
+                print(&mut output, path, ant_queue)?;
             }
             write!(output, "\n")?;
         }
@@ -108,10 +108,10 @@ impl Graph {
             if let Some(paths) = Path::n_shortest(self, n) {
                 break paths;
             }
-            n -= 1;
-            if n == 0 {
+            if n <= 1 {
                 return None;
             }
+            n -= 1;
         };
 
         // TODO: get the paths to be pre sorted

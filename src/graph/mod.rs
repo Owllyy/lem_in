@@ -3,6 +3,7 @@ mod link;
 mod name;
 mod node;
 mod solve;
+mod path;
 
 use core::fmt;
 use std::{ops::Index, str::FromStr, error::Error};
@@ -11,6 +12,7 @@ pub use node_id::NodeId;
 pub use link::LinkByName;
 pub use name::{is_invalid_name_char, Name};
 pub use node::Node;
+pub use path::Path;
 
 use ParseError::*;
 
