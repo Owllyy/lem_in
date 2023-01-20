@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{io, collections::VecDeque, fmt::write, iter::repeat};
+use std::{io, collections::VecDeque, fmt::write, iter::{repeat, repeat_with}};
 
 use crate::path::Path;
 use super::Graph;
@@ -25,13 +25,18 @@ impl Solution {
         let mut ant_id: usize = 0;
         let mut ant_vec: Vec<VecDeque<Option<usize>>> = Vec::new();
 
+        // Skip ahead & prevent panic
+        if self.0.is_empty() {
+            return Ok(())
+        }
+
         // Prefill with None
-        ant_vec.extend(repeat(VecDeque::new()).take(self.0[0].paths.len()));
+        ant_vec.extend(repeat_with(VecDeque::new).take(self.0[0].paths.len()));
         for (node_vec, ant_vec) in self.0[0].paths.iter().zip(&mut ant_vec) {
             ant_vec.extend(repeat(None).take(node_vec.len()));
         }
 
-        //Print to the correct format
+        // Print to the correct format
         fn print(output: &mut impl io::Write, path: &Path, ant_vec: &VecDeque<Option<usize>>) -> io::Result<()> {
             for (node, ant) in path.as_ref().iter().zip(ant_vec) {
                 if let Some(ant) = ant {
@@ -57,9 +62,9 @@ impl Solution {
             }
         }
 
-        //Push forward remaining ant in Paths + Print
+        // Push forward remaining ant in Paths + Print
         let latency = self.0[0].paths.iter().map(|e| e.len()).max().unwrap_or(0);
-        for i in 0..latency {
+        for _ in 0..latency {
             for (i, path) in self.0[0].paths.iter().enumerate() {
                 push_bounded(&mut ant_vec[i], None, path.len());
                 print(&mut output, path, &ant_vec[i])?;
