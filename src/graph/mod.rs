@@ -1,4 +1,4 @@
-mod id;
+mod node_id;
 mod link;
 mod name;
 mod node;
@@ -6,7 +6,7 @@ mod solve;
 
 use std::{ops::Index, str::FromStr};
 
-pub use id::Id;
+pub use node_id::NodeId;
 pub use link::LinkByName;
 pub use name::{is_invalid_name_char, Name};
 pub use node::Node;
@@ -16,8 +16,8 @@ use ParseError::*;
 #[derive(Debug)]
 pub struct Graph {
     nodes: Vec<Node>,
-    start: Id,
-    end: Id,
+    start: NodeId,
+    end: NodeId,
     ant_count: usize,
 }
 
@@ -41,8 +41,8 @@ impl Graph {
             .iter()
             .position(|n| n.name == link.b)
             .ok_or(LinkingError::UnknownName(link.b))?;
-        self.nodes[a].links.push(Id::from(b));
-        self.nodes[b].links.push(Id::from(a));
+        self.nodes[a].links.push(NodeId::from(b));
+        self.nodes[b].links.push(NodeId::from(a));
         Ok(())
     }
 
@@ -50,11 +50,11 @@ impl Graph {
         &self.nodes
     }
 
-    pub fn start(&self) -> Id {
+    pub fn start(&self) -> NodeId {
         self.start
     }
 
-    pub fn end(&self) -> Id {
+    pub fn end(&self) -> NodeId {
         self.end
     }
 
@@ -65,15 +65,15 @@ impl Graph {
     // #[cfg(test)]
     pub fn random(mut rng: impl rand::Rng, node_count: usize, link_density: f32, max_ant_count: usize) -> Self {
         Self {
-            start: Id::from(rng.gen_range(0..node_count)),
-            end: Id::from(rng.gen_range(0..node_count)),
+            start: NodeId::from(rng.gen_range(0..node_count)),
+            end: NodeId::from(rng.gen_range(0..node_count)),
             nodes: (0..node_count)
                 .map(|id| Node {
                     name: Name::from_str(&id.to_string()).unwrap(),
                     pos: node::Position { x: 0, y: 0 },
                     links: (0..node_count)
                         .filter(|_| rng.gen::<f32>() < link_density)
-                        .map(|id| Id::from(id))
+                        .map(|id| NodeId::from(id))
                         .collect(),
                 })
                 .collect(),
@@ -82,9 +82,9 @@ impl Graph {
     }
 }
 
-impl Index<Id> for Graph {
+impl Index<NodeId> for Graph {
     type Output = Node;
-    fn index(&self, id: Id) -> &Self::Output {
+    fn index(&self, id: NodeId) -> &Self::Output {
         &self.nodes[usize::from(id)]
     }
 }
@@ -105,8 +105,8 @@ impl FromStr for Graph {
 
         let mut graph = Graph {
             ant_count: number_of_ants,
-            start: Id::from(0),
-            end: Id::from(0),
+            start: NodeId::from(0),
+            end: NodeId::from(0),
             nodes: vec![],
         };
         let mut start = None;
@@ -148,8 +148,8 @@ impl FromStr for Graph {
         let Some(end) = end else {
             return Err(MissingTag("end".to_owned()));
         };
-        graph.start = Id::from(start);
-        graph.end = Id::from(end);
+        graph.start = NodeId::from(start);
+        graph.end = NodeId::from(end);
 
         Ok(graph)
     }
