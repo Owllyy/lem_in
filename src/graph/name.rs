@@ -1,3 +1,4 @@
+use core::fmt;
 use std::str::FromStr;
 
 /// A valid node name
@@ -9,6 +10,22 @@ pub struct Name(String);
 pub enum ParseError {
     InvalidCharacter(char),
 }
+
+impl AsRef<str> for Name {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::InvalidCharacter(c) => writeln!(f, "Invalid chartect '{c}'"),
+        }
+    }
+}
+
+impl std::error::Error for ParseError {}
 
 /// Invalid characters are `'-'` `' '` & `'#'`
 /// ```
