@@ -4,7 +4,8 @@ mod name;
 mod node;
 mod solve;
 
-use std::{ops::Index, str::FromStr};
+use core::fmt;
+use std::{ops::Index, str::FromStr, error::Error};
 
 pub use node_id::NodeId;
 pub use link::LinkByName;
@@ -166,6 +167,30 @@ pub enum ParseError {
     LinkingError(LinkingError),
 }
 
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MissingAnts => write!(f, "Missing ant section"),
+            DuplicateName(name) => write!(f, "Duplicate name {}", name.as_ref()),
+            InvalidTag(tag) => write!(f, "Invalid tag {tag}"),
+            DuplicateTag(tag)=> write!(f, "Duplicate tag {tag}"),
+            MissingTag(tag) => write!(f, "Missing tag {tag}"),
+            LinkParseError(link_error) => write!(f, "Could not parse link: {link_error}"),
+            LinkingError(linking_error) => write!(f, "Invalid link: {linking_error}"),
+        }
+    }
+}
+
+impl Error for ParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::LinkingError(ref error) => Some(error),
+            Self::LinkParseError(ref error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
 impl From<link::ParseError> for ParseError {
     fn from(error: link::ParseError) -> Self {
         Self::LinkParseError(error)
@@ -182,6 +207,16 @@ impl From<LinkingError> for ParseError {
 pub enum LinkingError {
     UnknownName(Name),
 }
+
+impl fmt::Display for LinkingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LinkingError::UnknownName(name) => write!(f, "Unkown node name {}", name.as_ref()),
+        }
+    }
+}
+
+impl Error for LinkingError {}
 
 #[cfg(test)]
 mod tests {

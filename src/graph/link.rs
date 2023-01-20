@@ -1,6 +1,7 @@
 use super::{NodeId, name, Name};
 
-use std::str::FromStr;
+use core::fmt;
+use std::{str::FromStr, error::Error};
 
 #[derive(PartialEq, Eq)]
 pub struct LinkByName {
@@ -12,6 +13,24 @@ pub struct LinkByName {
 pub enum ParseError {
     MissingField,
     InvalidName(name::ParseError)
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::MissingField => write!(f, "Missing field"),
+            ParseError::InvalidName(name_error) => write!(f, "Invalid name: {name_error}"),
+        }
+    }
+}
+
+impl Error for ParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ParseError::InvalidName(ref invalid_name_error) => Some(invalid_name_error),
+            _ => None,
+        }
+    }
 }
 
 impl From<name::ParseError> for ParseError {
