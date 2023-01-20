@@ -31,7 +31,6 @@ fn load_graph(mut input: impl Read) -> Result<Graph, String> {
         .map_err(|e| format!("Invalid map: {e}"))
 }
 
-
 fn get_graph() -> Result<Graph, String> {
     let arg = std::env::args().nth(1);
     match arg.as_deref() {
