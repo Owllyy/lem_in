@@ -194,7 +194,7 @@ mod benches {
 
     #[bench]
     fn shortest_2_paths_for_map_1(b: &mut Bencher) {
-        let graph = include_str!("../../../maps/1").parse().unwrap();
+        let graph = include_str!("../../../maps/handmade/subject_map").parse().unwrap();
         b.iter(|| Path::n_shortest(&graph, 2));
     }
 
