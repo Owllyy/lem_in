@@ -20,7 +20,7 @@ impl AsRef<str> for Name {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ParseError::InvalidCharacter(c) => writeln!(f, "Invalid chartect '{c}'"),
+            ParseError::InvalidCharacter(c) => writeln!(f, "Invalid character '{c}'"),
         }
     }
 }
