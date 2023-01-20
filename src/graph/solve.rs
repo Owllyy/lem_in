@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{io, collections::VecDeque, fmt::write};
+use std::{io, collections::VecDeque, fmt::write, iter::repeat};
 
 use crate::path::Path;
 use super::Graph;
@@ -25,52 +25,49 @@ impl Solution {
         let mut ant_id: usize = 0;
         let mut ant_vec: Vec<VecDeque<Option<usize>>> = Vec::new();
 
+        for (node_vec, ant_vec) in self.0[0].paths.iter().zip(&mut ant_vec) {
+            ant_vec.extend(repeat(None).take(node_vec.len()).skip(1));
+        }
+
         fn print(output: &mut impl io::Write, path: &Path, ant_vec: &VecDeque<Option<usize>>) -> io::Result<()> {
-            for (j, node) in path.as_ref().iter().enumerate() {
-                if ant_vec.len() > j {
-                    if let Some(ant) = ant_vec[j] {
-                        write!(output, "L{}-{} ", ant, usize::from(*node))?;
-                    }
+            for (node, ant) in path.as_ref().iter().zip(ant_vec) {
+                if let Some(ant) = ant {
+                    write!(output, "L{}-{} ", ant, usize::from(*node))?;
                 }
             }
             Ok(())
         }
 
-        for (step_index, current_step) in self.0.iter().enumerate() {
-            for path in &current_step.paths {
+        for current_step in &self.0 {
+            for _ in &current_step.paths {
                 ant_vec.push(VecDeque::new());
             }
 
-            let Some(latency) = current_step.paths.iter().map(|e| e.len()).max() else {
-                // TODO choose behaviour for now we are lazy
-                return Ok(())
-            };
+            debug_assert!(!current_step.paths.is_empty());
             
-            
-            for time in 0..current_step.duration {
+            for _ in 0..current_step.duration {
                 for (i, path) in self.0[0].paths.iter().enumerate() {
-                    // push ant in current_step scope and push forward others
                     if current_step.paths.len() > i {
                         push_bounded(&mut ant_vec[i], Some(ant_id), path.len());
+                        ant_id += 1;
                     } else {
                         push_bounded(&mut ant_vec[i], None, path.len());
                     }
-                    ant_id += 1;
                     print(&mut output, path, &mut ant_vec[i])?;
                 }
                 write!(output, "\n")?;
             }
-    }
-    let Some(latency) = self.0[0].paths.iter().map(|e| e.len()).max() else {return Ok(())};
-    for i in 0..latency {
-        for (i, path) in self.0[0].paths.iter().enumerate() {
-            push_bounded(&mut ant_vec[i], None, path.len());
-            print(&mut output, path, &ant_vec[i])?;
         }
-        write!(output, "\n")?;
-    }
-    Ok(())
-    }
+        let Some(latency) = self.0[0].paths.iter().map(|e| e.len()).max() else {return Ok(())};
+        for i in 0..latency {
+            for (i, path) in self.0[0].paths.iter().enumerate() {
+                push_bounded(&mut ant_vec[i], None, path.len());
+                print(&mut output, path, &ant_vec[i])?;
+            }
+            write!(output, "\n")?;
+        }
+        Ok(())
+        }
 }
 
 impl fmt::Display for Solution {
