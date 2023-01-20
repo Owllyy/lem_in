@@ -5,7 +5,7 @@ use backtrace::Backtrace;
 use super::Path;
 
 use branch_id::BranchId;
-use crate::{BitArray, Graph, Id};
+use crate::{BitArray, Graph, NodeId};
 use std::collections::{HashMap, VecDeque};
 
 struct ValidPath {
@@ -19,7 +19,7 @@ struct BranchGenerator(BranchId);
 #[derive(Clone, Copy)]
 pub struct Branch { 
     id : BranchId,
-    node: Id,
+    node: NodeId,
 }
 
 impl BranchGenerator {
@@ -33,7 +33,7 @@ impl BranchGenerator {
         result
     }
 
-    pub fn create(&mut self, node: Id) -> Branch {
+    pub fn create(&mut self, node: NodeId) -> Branch {
         Branch {
             id: self.next(),
             node,
@@ -133,7 +133,7 @@ impl Path {
         let mut branch_generator = BranchGenerator::new();
         let branch_origin = branch_generator.next();
         // Here I put usize::MAX because should never be used
-        accesses[usize::from(graph.start())].insert(branch_origin, branch_generator.create(Id::from(usize::MAX)));
+        accesses[usize::from(graph.start())].insert(branch_origin, branch_generator.create(NodeId::from(usize::MAX)));
         work_queue.push(branch_generator.create(graph.start()), &accesses);
 
         let group = loop {

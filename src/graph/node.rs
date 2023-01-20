@@ -1,12 +1,12 @@
 use std::{str::FromStr, num::ParseIntError};
 
-use super::{name, Name, Id};
+use super::{name, Name, NodeId};
 
 #[derive(Debug)]
 pub struct Node {
     pub name: Name,
     pub pos: Position,
-    pub links: Vec<Id>,
+    pub links: Vec<NodeId>,
 }
 
 #[derive(Debug)]
