@@ -25,10 +25,13 @@ impl Solution {
         let mut ant_id: usize = 0;
         let mut ant_vec: Vec<VecDeque<Option<usize>>> = Vec::new();
 
+        // Prefill with None
+        ant_vec.extend(repeat(VecDeque::new()).take(self.0[0].paths.len()));
         for (node_vec, ant_vec) in self.0[0].paths.iter().zip(&mut ant_vec) {
-            ant_vec.extend(repeat(None).take(node_vec.len()).skip(1));
+            ant_vec.extend(repeat(None).take(node_vec.len()));
         }
 
+        //Print to the correct format
         fn print(output: &mut impl io::Write, path: &Path, ant_vec: &VecDeque<Option<usize>>) -> io::Result<()> {
             for (node, ant) in path.as_ref().iter().zip(ant_vec) {
                 if let Some(ant) = ant {
@@ -37,14 +40,9 @@ impl Solution {
             }
             Ok(())
         }
-
+        
+        // Push In and Forward ant in Paths + Print
         for current_step in &self.0 {
-            for _ in &current_step.paths {
-                ant_vec.push(VecDeque::new());
-            }
-
-            debug_assert!(!current_step.paths.is_empty());
-            
             for _ in 0..current_step.duration {
                 for (i, path) in self.0[0].paths.iter().enumerate() {
                     if current_step.paths.len() > i {
@@ -58,6 +56,8 @@ impl Solution {
                 write!(output, "\n")?;
             }
         }
+
+        //Push forward remaining ant in Paths + Print
         let Some(latency) = self.0[0].paths.iter().map(|e| e.len()).max() else {return Ok(())};
         for i in 0..latency {
             for (i, path) in self.0[0].paths.iter().enumerate() {
