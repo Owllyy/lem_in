@@ -51,9 +51,3 @@ impl FromStr for LinkByName {
         })
     }
 }
-
-pub struct Link {
-    pub a: NodeId,
-    pub b: NodeId,
-}
-
