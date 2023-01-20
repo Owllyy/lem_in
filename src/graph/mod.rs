@@ -2,6 +2,7 @@ mod id;
 mod link;
 mod name;
 mod node;
+mod solve;
 
 use std::{ops::Index, str::FromStr};
 

@@ -11,3 +11,9 @@ impl FromIterator<Id> for Path {
         Self(iter.into_iter().collect())
     }
 }
+
+impl Path {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}

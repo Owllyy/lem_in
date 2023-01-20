@@ -111,13 +111,16 @@ fn find_group(
 }
 
 impl Path {
+    // TODO: add find optimal
+
+    // TODO: sort result Vec<_>
     pub fn n_shortest(graph: &Graph, n: usize) -> Option<Vec<Self>> {
         // TODO: find better way
         if n == 0 {
             return Some(Vec::new());
         }
         // TODO: move to graph
-        let max_possible = graph[graph.start()].links.len().min(graph[graph.end()].links.len());
+        let max_possible = graph.simple_throughput_majorant();
 
         if n > max_possible {
             return None;
