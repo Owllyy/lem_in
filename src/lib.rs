@@ -10,4 +10,3 @@ pub mod path;
 
 pub use graph::*;
 pub use bit_array::BitArray;
-

@@ -8,13 +8,13 @@ impl Path {
         let mut active_nodes = VecDeque::new();
 
         let mut id = graph.start();
-        accesses[id.0] = Some(id);
+        accesses[usize::from(id)] = Some(id);
         loop {
             if id == graph.end() {
                 break;
             }
             for link in &graph[id].links {
-                let access = &mut accesses[link.0];
+                let access = &mut accesses[usize::from(id)];
                 if access.is_none() {
                     *access = Some(id);
                     active_nodes.push_back(link);
@@ -25,7 +25,7 @@ impl Path {
 
         let mut path = vec![id];
         while id != graph.start() {
-            id = accesses[id.0].unwrap();
+            id = accesses[usize::from(id)].unwrap();
             path.push(id);
         }
         path.reverse();

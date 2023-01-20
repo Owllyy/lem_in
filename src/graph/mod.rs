@@ -40,8 +40,8 @@ impl Graph {
             .iter()
             .position(|n| n.name == link.b)
             .ok_or(LinkingError::UnknownName(link.b))?;
-        self.nodes[a].links.push(Id(b));
-        self.nodes[b].links.push(Id(a));
+        self.nodes[a].links.push(Id::from(b));
+        self.nodes[b].links.push(Id::from(a));
         Ok(())
     }
 
@@ -64,15 +64,15 @@ impl Graph {
     // #[cfg(test)]
     pub fn random(mut rng: impl rand::Rng, node_count: usize, link_density: f32, max_ant_count: usize) -> Self {
         Self {
-            start: Id(rng.gen_range(0..node_count)),
-            end: Id(rng.gen_range(0..node_count)),
+            start: Id::from(rng.gen_range(0..node_count)),
+            end: Id::from(rng.gen_range(0..node_count)),
             nodes: (0..node_count)
                 .map(|id| Node {
                     name: Name::from_str(&id.to_string()).unwrap(),
                     pos: node::Position { x: 0, y: 0 },
                     links: (0..node_count)
                         .filter(|_| rng.gen::<f32>() < link_density)
-                        .map(|id| Id(id))
+                        .map(|id| Id::from(id))
                         .collect(),
                 })
                 .collect(),
@@ -83,8 +83,8 @@ impl Graph {
 
 impl Index<Id> for Graph {
     type Output = Node;
-    fn index(&self, index: Id) -> &Self::Output {
-        &self.nodes[index.0]
+    fn index(&self, id: Id) -> &Self::Output {
+        &self.nodes[usize::from(id)]
     }
 }
 
@@ -104,8 +104,8 @@ impl FromStr for Graph {
 
         let mut graph = Graph {
             ant_count: number_of_ants,
-            start: Id(0),
-            end: Id(0),
+            start: Id::from(0),
+            end: Id::from(0),
             nodes: vec![],
         };
         let mut start = None;
@@ -147,8 +147,8 @@ impl FromStr for Graph {
         let Some(end) = end else {
             return Err(MissingTag("end".to_owned()));
         };
-        graph.start = Id(start);
-        graph.end = Id(end);
+        graph.start = Id::from(start);
+        graph.end = Id::from(end);
 
         Ok(graph)
     }

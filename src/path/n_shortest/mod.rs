@@ -2,32 +2,79 @@ mod backtrace;
 use backtrace::Backtrace;
 
 use super::Path;
-use crate::{BitArray, Graph, Id};
+use crate::{BitArray, Graph, Id, graph};
 use std::collections::{HashMap, VecDeque};
 
-type PathId = usize;
+type BranchId = usize;
 
 struct ValidPath {
-    path_id: PathId,
+    branch: Branch,
     hit_node: BitArray,
     incompats: BitArray,
 }
 
-struct PathIdGenerator(PathId);
+struct BranchGenerator(BranchId);
 
-impl PathIdGenerator {
+#[derive(Clone, Copy)]
+pub struct Branch { 
+    id : BranchId,
+    node: Id,
+}
+
+impl BranchGenerator {
     fn new() -> Self {
         Self(0)
     }
 
-    fn peek(&self) -> PathId {
-        self.0
-    }
-
-    fn next(&mut self) -> PathId {
+    fn next(&mut self) -> BranchId {
         let result = self.0;
         self.0 += 1;
         result
+    }
+
+    pub fn create(&mut self, node: Id) -> Branch {
+        Branch {
+            id: self.next(),
+            node,
+        }
+    }
+}
+
+struct WorkQueue {
+    max_overlap: usize,
+    queues : Vec<VecDeque<Branch>>,
+}
+
+type AccessRecord = HashMap<BranchId, Branch>;
+
+impl WorkQueue {
+    fn next(&mut self) -> Option<Branch> {
+        for queue in &mut self.queues {
+            match queue.pop_front() {
+                Some(branch) => return Some(branch),
+                None => {},
+            }
+        }
+        None
+    }
+
+    fn new(max_overlap: usize) -> Self {
+        Self {
+            max_overlap,
+            queues : Vec::new(),
+        }
+    }
+
+    fn push(&mut self, branch: Branch, accesses: &[AccessRecord]) {
+        let access = &accesses[usize::from(branch.node)];
+        let i = access.len();
+        if i >= self.max_overlap {
+            return
+        }
+        match self.queues.get_mut(i) {
+            Some(queue) => queue.push_back(branch),
+            None => self.queues.push(VecDeque::from([branch])),
+        }
     }
 }
 
@@ -36,7 +83,7 @@ fn find_group(
     paths: &[ValidPath],
     start: usize,
     count: usize,
-) -> Option<Vec<PathId>> {
+) -> Option<Vec<Branch>> {
     if paths[start..].len() < count {
         return None;
     }
@@ -56,7 +103,7 @@ fn find_group(
         );
 
         if let Some(mut group) = result {
-            group.push(path.path_id);
+            group.push(path.branch);
             return Some(group);
         }
     }
@@ -69,62 +116,63 @@ impl Path {
         if n == 0 {
             return Some(Vec::new());
         }
+        // TODO: move to graph
         let max_possible = graph[graph.start()].links.len().min(graph[graph.end()].links.len());
+
         if n > max_possible {
             return None;
         }
-        let mut active_branches = VecDeque::new();
-        let mut accesses = vec![HashMap::new(); graph.nodes().len()];
+        let mut work_queue = WorkQueue::new(2 * n);
+        let mut accesses: Vec<_> = (0..graph.nodes().len()).map(|_| AccessRecord::new()).collect();
         let mut valid_paths: Vec<ValidPath> = vec![];
 
-        let mut path_id_generator = PathIdGenerator::new();
-        let path_origin = path_id_generator.next();
+        let mut branch_generator = BranchGenerator::new();
+        let branch_origin = branch_generator.next();
         // Here I put usize::MAX because should never be used
-        accesses[graph.start().0].insert(path_origin, (usize::MAX, Id(usize::MAX)));
-        active_branches.push_back((path_origin, graph.start()));
+        accesses[usize::from(graph.start())].insert(branch_origin, branch_generator.create(Id::from(usize::MAX)));
+        work_queue.push(branch_generator.create(graph.start()), &accesses);
 
         let group = loop {
-            let (path_id, id) = active_branches.pop_front()?;
-            if id == graph.end() {
+            let branch = work_queue.next()?;
+            if branch.node == graph.end() {
                 let mut hit_node = BitArray::new(graph.nodes().len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
-                for id in Backtrace::new(graph, &accesses, path_id, id).skip(1) {
-                    hit_node.add(id.0);
+                for id in Backtrace::new(graph, &accesses, branch).skip(1) {
+                    hit_node.add(usize::from(id));
                     for (path_index, path) in valid_paths.iter().enumerate() {
-                        incompats.add_if(path_index, path.hit_node.get(id.0));
+                        incompats.add_if(path_index, path.hit_node.get(usize::from(id)));
                     }
                 }
 
                 if let Some(mut group) = find_group(&incompats, &valid_paths, 0, n - 1) {
-                    group.push(path_id);
-                    println!("{}", path_id_generator.peek());
+                    group.push(branch);
                     break group;
                 }
 
                 valid_paths.push(ValidPath {
-                    path_id,
+                    branch,
                     hit_node,
                     incompats,
                 });
                 continue;
             }
 
-            for &link in &graph[id].links {
+            for &link in &graph[branch.node].links {
                 // TODO factorize repeated backtracing...
-                if link == graph.start() || Backtrace::new(graph, &accesses, path_id, id).any(|x| x == link) {
+                if link == graph.start() || Backtrace::new(graph, &accesses, branch).any(|x| x == link) {
                     continue;
                 }
-                let new_path_id = path_id_generator.next();
-                accesses[link.0].insert(new_path_id, (path_id, id));
-                active_branches.push_back((new_path_id, link));
+                let new_branch = branch_generator.create(link);
+                accesses[usize::from(new_branch.node)].insert(new_branch.id, branch);
+                work_queue.push(new_branch, &accesses);
             }
         };
         Some(
             group
                 .into_iter()
-                .map(|path_id| {
-                    Backtrace::new(graph, &accesses, path_id, graph.end())
+                .map(|branch| {
+                    Backtrace::new(graph, &accesses, branch)
                         .skip(1)
                         .collect()
                 })
