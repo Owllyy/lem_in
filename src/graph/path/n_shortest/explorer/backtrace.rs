@@ -17,7 +17,7 @@ impl<'explorer> Iterator for Backtrace<'explorer> {
     }
 }
 
-impl super::Explorer {
+impl Explorer {
     pub fn bracktrace(&self, branch: Branch) -> Backtrace {
         Backtrace {
             current: branch,
