@@ -67,16 +67,18 @@ impl Solution {
             }
         }
 
-        // Push forward remaining ant in Paths + Print
-        let latency = all_path_step.paths
-            .iter().map(Path::len)
-            .max().unwrap_or(0);
-        for _ in 0..latency {
+        // Push Forward remaining ant in Paths + Print
+        let mut has_ants = true;
+        while has_ants {
+            has_ants = false;
             for (path, ants) in all_path_step.paths.iter().zip(&mut ant_vecs) {
                 cycle(ants, None);
                 print(&mut output, path, ants)?;
             }
-            write!(output, "\n")?;
+            if !ant_vecs.iter().all(|ants| ants.iter().all(|x| x.is_none())) {
+                has_ants = true;
+                write!(output, "\n")?;
+            }
         }
         Ok(())
     }
@@ -113,7 +115,6 @@ impl Graph {
                 return None;
             }
         };
-
         // TODO: get the paths to be pre sorted
         paths.sort_by_key(Path::len);
 
@@ -135,5 +136,43 @@ impl Graph {
             used_path = others;
         }
         Some(Solution(steps))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_move_ants() {
+        let graph: Graph = include_str!("../../maps/generated/big_superposition/0").parse().unwrap();
+
+        let Some(solution) = graph.solve() else {
+            // Nothing to check
+            return;
+        };
+
+        // Get output
+        let mut output = Vec::new();
+        solution.write_to(&mut output);
+
+        // Check
+        for (line_number, line) in output.split(|&c| c == b'\n').enumerate() {
+            let movements: Vec<_> = line.split(|&c| c == b' ').filter(|&m| !m.is_empty()).map(|m| {
+                let mut parts = m[1..].split(|&c| c == b'-');
+                let ant_id = parts.next().unwrap();
+                let node_id = parts.next().unwrap();
+                (ant_id, node_id)
+            }).collect();
+            
+            for (i, &(ant, node)) in movements.iter().enumerate() {
+                for &(ant2, node2) in movements[i..].iter().skip(1)  {
+                    let ant_str = std::str::from_utf8(ant2).unwrap();
+                    let node_str = std::str::from_utf8(node2).unwrap();
+                    assert!(ant != ant2, "Duplicate ant on line {line_number}: {ant_str}");
+                    assert!(node != node2, "Duplicate node on line {line_number}: {node_str}");
+                }
+            }
+        }
     }
 }

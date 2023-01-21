@@ -16,7 +16,7 @@ struct ValidPath {
 
 struct BranchGenerator(BranchId);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Branch { 
     id : BranchId,
     node: NodeId,
@@ -172,6 +172,14 @@ impl Path {
                 work_queue.push(new_branch, &accesses);
             }
         };
+        println!("For N = {}", n);
+        for path in &valid_paths {
+            println!("{} : {}\n", path.branch.id, path.incompats);
+        }
+        for branch in &group {
+            println!("{}", branch.id);
+        }
+
         Some(
             group
                 .into_iter()

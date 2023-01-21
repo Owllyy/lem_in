@@ -1,6 +1,6 @@
-use std::io::Read;
-use std::fs::File;
 use lem_in::graph::Graph;
+use std::fs::File;
+use std::io::Read;
 
 const RANDOM_GRAPH_NODE_COUNT: usize = 4_000;
 const RANDOM_GRAPH_DENSITY: f32 = 0.001;
@@ -25,26 +25,26 @@ fn show_graph_stats(graph: &Graph) {
 
 fn load_graph(mut input: impl Read) -> Result<Graph, String> {
     let mut content = String::new();
-    input.read_to_string(&mut content)
+    input
+        .read_to_string(&mut content)
         .map_err(|e| format!("Error reading file: {e}"))?;
-    content.parse()
-        .map_err(|e| format!("Invalid map: {e}"))
+    content.parse().map_err(|e| format!("Invalid map: {e}"))
 }
 
 fn get_graph() -> Result<Graph, String> {
     let arg = std::env::args().nth(1);
     match arg.as_deref() {
         Some(arg) if arg == "--random" => {
-            eprintln!("Generating random map (dens = {}%)...",
+            eprintln!(
+                "Generating random map (dens = {}%)...",
                 RANDOM_GRAPH_DENSITY * 100.0
             );
             let graph = random_graph();
             show_graph_stats(&graph);
             Ok(graph)
-        },
+        }
         Some(path) => {
-            let file = File::open(path)
-                .map_err(|e| format!("Could not read file: {e}"))?;
+            let file = File::open(path).map_err(|e| format!("Could not read file: {e}"))?;
             eprintln!("Loading file {path}...");
             load_graph(file)
         }
@@ -58,8 +58,9 @@ fn get_graph() -> Result<Graph, String> {
 fn run() -> Result<(), String> {
     let graph = get_graph()?;
     match graph.solve() {
-        Some(solution) => solution.write_to(std::io::stdout())
-             .map_err(|e| format!("Could write to stdout: {e}")),
+        Some(solution) => solution
+            .write_to(std::io::stdout())
+            .map_err(|e| format!("Could write to stdout: {e}")),
         None => {
             println!("No solution was found");
             Ok(())
