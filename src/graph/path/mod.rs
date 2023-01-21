@@ -1,5 +1,6 @@
 mod shortest;
 mod n_shortest;
+mod group;
 
 use crate::NodeId;
 
