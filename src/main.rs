@@ -58,10 +58,13 @@ fn get_graph() -> Result<Graph, String> {
 fn run() -> Result<(), String> {
     let graph = get_graph()?;
     match graph.solve() {
-        Some(solution) => println!("Print solution here"),
-        None => println!("No solution was found"),
+        Some(solution) => solution.write_to(std::io::stdout())
+             .map_err(|e| format!("Could write to stdout: {e}")),
+        None => {
+            println!("No solution was found");
+            Ok(())
+        }
     }
-    Ok(())
 }
 
 fn main() {
