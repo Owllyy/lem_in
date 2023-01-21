@@ -103,7 +103,7 @@ impl Graph {
 
         let group = loop {
             let branch = work_queue.next()?;
-            if branch.node == self.end() {
+            if branch.node == self.end {
                 let mut hit_node = BitArray::new(self.nodes.len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
@@ -129,9 +129,9 @@ impl Graph {
 
             for &dest in &self[branch.node].links {
                 // TODO factorize repeated backtracing...
-                // if explorer.bracktrace(branch).all(|x| x != dest) {
+                if explorer.bracktrace(branch).all(|x| x != dest) {
                     work_queue.push(explorer.branch(branch, dest), &explorer);
-                // }
+                }
             }
         };
         Some(
