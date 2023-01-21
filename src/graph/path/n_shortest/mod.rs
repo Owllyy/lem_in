@@ -1,10 +1,10 @@
-mod backtrace;
-mod branch_id;
-use backtrace::Backtrace;
+mod explorer;
 
-use branch_id::BranchId;
-use crate::{BitArray, Graph, NodeId, Path};
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+
+use crate::{BitArray, Graph, Path};
+
+use explorer::{Branch, Explorer};
 
 struct ValidPath {
     branch: Branch,
@@ -12,46 +12,17 @@ struct ValidPath {
     incompats: BitArray,
 }
 
-struct BranchGenerator(BranchId);
-
-#[derive(Clone, Copy)]
-pub struct Branch { 
-    id : BranchId,
-    node: NodeId,
-}
-
-impl BranchGenerator {
-    fn new() -> Self {
-        Self(0.into())
-    }
-
-    fn next(&mut self) -> BranchId {
-        let result = self.0;
-        self.0 = (usize::from(self.0) + 1).into();
-        result
-    }
-
-    pub fn create(&mut self, node: NodeId) -> Branch {
-        Branch {
-            id: self.next(),
-            node,
-        }
-    }
-}
-
 struct WorkQueue {
     max_overlap: usize,
-    queues : Vec<VecDeque<Branch>>,
+    queues: Vec<VecDeque<Branch>>,
 }
-
-type AccessRecord = HashMap<BranchId, Branch>;
 
 impl WorkQueue {
     fn next(&mut self) -> Option<Branch> {
         for queue in &mut self.queues {
             match queue.pop_front() {
                 Some(branch) => return Some(branch),
-                None => {},
+                None => {}
             }
         }
         None
@@ -60,15 +31,14 @@ impl WorkQueue {
     fn new(max_overlap: usize) -> Self {
         Self {
             max_overlap,
-            queues : Vec::new(),
+            queues: Vec::new(),
         }
     }
 
-    fn push(&mut self, branch: Branch, accesses: &[AccessRecord]) {
-        let access = &accesses[usize::from(branch.node)];
-        let i = access.len();
+    fn push(&mut self, branch: Branch, explorer: &Explorer) {
+        let i = explorer[branch.node].len();
         if i >= self.max_overlap {
-            return
+            return;
         }
         match self.queues.get_mut(i) {
             Some(queue) => queue.push_back(branch),
@@ -126,22 +96,18 @@ impl Graph {
             return None;
         }
         let mut work_queue = WorkQueue::new(2 * n);
-        let mut accesses: Vec<_> = (0..self.nodes().len()).map(|_| AccessRecord::new()).collect();
+        let mut explorer = Explorer::new(self);
         let mut valid_paths: Vec<ValidPath> = vec![];
 
-        let mut branch_generator = BranchGenerator::new();
-        let branch_origin = branch_generator.next();
-        // Here I put usize::MAX because should never be used
-        accesses[usize::from(self.start())].insert(branch_origin, branch_generator.create(NodeId::from(usize::MAX)));
-        work_queue.push(branch_generator.create(self.start()), &accesses);
+        work_queue.push(explorer.start(self.start), &explorer);
 
         let group = loop {
             let branch = work_queue.next()?;
             if branch.node == self.end() {
-                let mut hit_node = BitArray::new(self.nodes().len());
+                let mut hit_node = BitArray::new(self.nodes.len());
 
                 let mut incompats = BitArray::new(valid_paths.len());
-                for id in Backtrace::new(self, &accesses, branch).skip(1) {
+                for id in explorer.bracktrace(branch).skip(1) {
                     hit_node.add(usize::from(id));
                     for (path_index, path) in valid_paths.iter().enumerate() {
                         incompats.add_if(path_index, path.hit_node.get(usize::from(id)));
@@ -161,24 +127,17 @@ impl Graph {
                 continue;
             }
 
-            for &link in &self[branch.node].links {
+            for &dest in &self[branch.node].links {
                 // TODO factorize repeated backtracing...
-                if link == self.start() || Backtrace::new(self, &accesses, branch).any(|x| x == link) {
-                    continue;
-                }
-                let new_branch = branch_generator.create(link);
-                accesses[usize::from(new_branch.node)].insert(new_branch.id, branch);
-                work_queue.push(new_branch, &accesses);
+                // if explorer.bracktrace(branch).all(|x| x != dest) {
+                    work_queue.push(explorer.branch(branch, dest), &explorer);
+                // }
             }
         };
         Some(
             group
                 .into_iter()
-                .map(|branch| {
-                    Backtrace::new(self, &accesses, branch)
-                        .skip(1)
-                        .collect()
-                })
+                .map(|branch| explorer.bracktrace(branch).skip(1).collect())
                 .collect(),
         )
     }
@@ -192,7 +151,9 @@ mod benches {
 
     #[bench]
     fn shortest_2_paths_for_map_1(b: &mut Bencher) {
-        let graph: Graph = include_str_abs!("/maps/handmade/subject_map").parse().unwrap();
+        let graph: Graph = include_str_abs!("/maps/handmade/subject_map")
+            .parse()
+            .unwrap();
         b.iter(|| graph.n_shortest_paths(2));
     }
 
