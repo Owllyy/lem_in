@@ -1,4 +1,4 @@
-use std::ops::BitOr;
+use std::ops::{BitOr, BitAnd};
 use std::fmt;
 
 #[derive(Clone, Debug)]
@@ -86,6 +86,25 @@ impl BitOr for &BitArray {
         result.0.iter_mut()
             .zip(shortest.0.iter())
             .for_each(|(x, b)| *x |= b);
+
+        result
+    }
+}
+
+impl BitAnd for &BitArray {
+    type Output = BitArray;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        let (shortest, longest) = if self.0.len() < rhs.0.len() {
+            (self, rhs)
+        } else {
+            (rhs, self)
+        };
+        let mut result = longest.clone();
+
+        result.0.iter_mut()
+            .zip(shortest.0.iter())
+            .for_each(|(x, b)| *x &= b);
 
         result
     }

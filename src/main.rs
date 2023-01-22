@@ -56,7 +56,7 @@ fn get_graph() -> Result<Graph, String> {
 }
 
 fn run() -> Result<(), String> {
-    let graph = get_graph()?;
+    let mut graph = get_graph()?;
     match graph.solve() {
         Some(solution) => solution
             .write_to(std::io::stdout())

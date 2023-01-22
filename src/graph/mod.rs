@@ -6,7 +6,7 @@ mod solve;
 mod path;
 
 use core::fmt;
-use std::{ops::Index, str::FromStr, error::Error};
+use std::{ops::{Index, IndexMut}, str::FromStr, error::Error};
 
 pub use node_id::NodeId;
 pub use link::LinkByName;
@@ -78,6 +78,7 @@ impl Graph {
                         .filter(|_| rng.gen::<f32>() < link_density)
                         .map(|id| NodeId::from(id))
                         .collect(),
+                    path_counter: 0,
                 })
                 .collect(),
             ant_count: rng.gen_range(0..max_ant_count),
@@ -89,6 +90,12 @@ impl Index<NodeId> for Graph {
     type Output = Node;
     fn index(&self, id: NodeId) -> &Self::Output {
         &self.nodes[usize::from(id)]
+    }
+}
+
+impl IndexMut<NodeId> for Graph {
+    fn index_mut(&mut self, index: NodeId) -> &mut Self::Output {
+        &mut self.nodes[usize::from(index)]
     }
 }
 

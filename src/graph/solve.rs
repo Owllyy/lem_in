@@ -101,7 +101,7 @@ impl Graph {
         start_link_count.min(end_link_count)
     }
 
-    pub fn solve(&self) -> Option<Solution> {
+    pub fn solve(&mut self) -> Option<Solution> {
         // TODO: use better one found on the fly
         let mut n = self.simple_throughput_majorant();
         let mut paths = loop {
@@ -135,5 +135,44 @@ impl Graph {
             used_path = others;
         }
         Some(Solution(steps))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_move_ants() {
+        let mut graph: Graph = include_str!("../../maps/generated/big_superposition/0").parse().unwrap();
+
+        let Some(solution) = graph.solve() else {
+            // Nothing to check
+            return;
+        };
+
+        // Get output
+        let mut output = Vec::new();
+        solution.write_to(&mut output);
+        println!("{}", solution);
+
+        // Check
+        for (line_number, line) in output.split(|&c| c == b'\n').enumerate() {
+            let movements: Vec<_> = line.split(|&c| c == b' ').filter(|&m| !m.is_empty()).map(|m| {
+                let mut parts = m[1..].split(|&c| c == b'-');
+                let ant_id = parts.next().unwrap();
+                let node_id = parts.next().unwrap();
+                (ant_id, node_id)
+            }).collect();
+            
+            // for (i, &(ant, node)) in movements.iter().enumerate() {
+            //     for &(ant2, node2) in movements[i..].iter().skip(1)  {
+            //         let ant_str = std::str::from_utf8(ant2).unwrap();
+            //         let node_str = std::str::from_utf8(node2).unwrap();
+            //         assert!(ant != ant2, "Duplicate ant on line {line_number}: {ant_str}");
+            //         assert!(node != node2, "Duplicate node on line {line_number}: {node_str}");
+            //     }
+            // }
+        }
     }
 }

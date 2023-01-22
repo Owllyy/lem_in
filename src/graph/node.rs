@@ -7,6 +7,13 @@ pub struct Node {
     pub name: Name,
     pub pos: Position,
     pub links: Vec<NodeId>,
+    pub path_counter: usize,
+}
+
+impl Node {
+    pub fn add_path_counter(&mut self) {
+        self.path_counter += 1;
+    }
 }
 
 #[derive(Debug)]
@@ -39,6 +46,7 @@ impl FromStr for Node {
             name: name.parse()?,
             pos,
             links: Vec::new(),
+            path_counter: 0,
         })
     }
 }
